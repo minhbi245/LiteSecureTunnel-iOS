@@ -117,9 +117,20 @@ Admin UI: http://localhost:51821 (set `PASSWORD_HASH` in `docker-compose.yml` vi
 
 ### 4. Seed a client config
 
+The repo ships with placeholder values for all secrets — **no real keys are committed**. Fill them in locally:
+
 1. Web UI → **New Client** → name `ios-test` → Download `.conf`
-2. Copy values into `TunnelViewModel.devSampleConfig()` + `devPrivateKey`
-3. App populates Keychain on first launch (DEBUG build only)
+2. Open `TunnelViewModel.swift` and replace:
+   - `peerPublicKey` — `[Peer] PublicKey` from the `.conf`
+   - `peerEndpoint` — `[Peer] Endpoint` (your Mac LAN IP + port)
+   - `presharedKey` — `[Peer] PresharedKey` if present, else leave `nil`
+   - `devPrivateKey` — `[Interface] PrivateKey` from the `.conf`
+3. In `server/docker-compose.yml` replace:
+   - `WG_HOST` with your Mac LAN IP (`ipconfig getifaddr en0`)
+   - `PASSWORD_HASH` with a bcrypt hash of your own strong password (`docker run -it ghcr.io/wg-easy/wg-easy wgpw YOUR_PASSWORD`)
+4. App persists the private key into Keychain on first launch (DEBUG build only)
+
+> ⚠️ **Never commit real keys.** The placeholders are deliberately written with `<ANGLE_BRACKETS>` so the app's seeder detects them and skips — protecting forks that haven't set up a wg-easy client yet.
 
 ### 5. Run
 

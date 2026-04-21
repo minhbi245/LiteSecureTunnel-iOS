@@ -43,6 +43,9 @@ final class TunnelViewModel: ObservableObject {
 
     #if DEBUG
     private func seedDevPrivateKey() {
+        // Skip if placeholder never replaced — avoids crashing dev builds of
+        // forks that haven't set up a wg-easy client yet.
+        guard !Self.devPrivateKey.hasPrefix("<") else { return }
         guard (try? KeychainStore.load()) == nil,
               let data = Data(base64Encoded: Self.devPrivateKey) else { return }
         try? KeychainStore.save(data)
@@ -88,23 +91,28 @@ final class TunnelViewModel: ObservableObject {
         }
     }
 
-    // DEBUG seeder — values from wg-easy client "ios-test" (LAN-only test server).
-    // Private key loaded from Keychain separately at tunnel start.
-    // For production: replace with a real config import flow (file picker / QR scan).
+    // DEBUG seeder — paste values from your local wg-easy client export.
+    // See README "Seed a client config" for the full flow.
+    //
+    // Keys are deliberately NOT checked into source — treat the placeholders
+    // as a setup prompt. Fill them in locally; do not commit real keys.
+    //
+    // For production: replace with a real config import flow (.conf file picker / QR scan).
     private static func devSampleConfig() -> TunnelConfiguration {
         TunnelConfiguration(
             interfaceAddress: "10.8.0.2/24",
             dnsServers: ["1.1.1.1"],
-            peerPublicKey: "***REMOVED***",
-            peerEndpoint: "192.168.1.8:51820",
+            peerPublicKey: "<PASTE_PEER_PUBLIC_KEY_FROM_WG_EASY>",
+            peerEndpoint: "<LAN_IP>:51820",
             allowedIPs: ["0.0.0.0/0", "::/0"],
-            presharedKey: "***REMOVED***"
+            presharedKey: nil    // Optional. Paste from wg-easy if you enabled PSK.
         )
     }
 
     #if DEBUG
-    // Private key from wg-easy client "ios-test". Persists into Keychain on first app launch.
-    // In production, the key would be generated on-device or imported from a secure source.
-    static let devPrivateKey = "***REMOVED***"
+    // Private key for the wg-easy client. Persisted into Keychain on first launch.
+    // Do NOT commit a real key — replace locally before building.
+    // In production the key would be generated on-device or imported securely.
+    static let devPrivateKey = "<PASTE_CLIENT_PRIVATE_KEY_FROM_WG_EASY>"
     #endif
 }
