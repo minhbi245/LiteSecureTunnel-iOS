@@ -16,7 +16,8 @@ SwiftUI app with a single Connect toggle. On a physical device with a paid Apple
 | App Group + Network Extension target scaffolding | ✅ Done |
 | `NETunnelProviderManager` wrapper (start/stop/status) | ✅ Done |
 | wg-easy Docker server (LAN) | ✅ Done |
-| **WireGuardKit integration in `PacketTunnelProvider`** | ⏸️ Deferred — see below |
+| `PacketTunnelProvider` + `WireGuardAdapter` integration code | ✅ Written (guarded by `#if canImport(WireGuardKit) && !targetEnvironment(simulator)`) |
+| **WireGuardKit linked + running on device** | ⏸️ Pending paid Apple Developer account |
 
 ### Why WireGuardKit is deferred
 
@@ -33,9 +34,29 @@ Both issues resolve once a paid account is available.
 
 ### Behavior today
 
-- Simulator: alert is shown, toggle is disabled — **matches assignment requirement exactly.**
-- Physical device (personal team): app builds + runs, but `startTunnel` throws *"Tunnel not implemented yet"* in the stub `PacketTunnelProvider` until WireGuardKit is wired up.
+- Simulator: alert is shown, toggle is disabled — **matches assignment requirement exactly.** Build succeeds without WireGuardKit linked.
+- Physical device (personal team): app builds + runs, but tunnel cannot start because Network Extension entitlement is paid-only. `startTunnel` returns a stub error.
 - DEBUG seeder pre-populates Keychain private key and `TunnelConfiguration` from the wg-easy `ios-test` client so the full path is one integration step away.
+
+### Enabling the tunnel on device (when paid account is available)
+
+The Phase 4 code in `PacketTunnelProvider.swift` is already written — it's gated behind `#if canImport(WireGuardKit) && !targetEnvironment(simulator)`. To activate:
+
+1. Clone wireguard-apple locally:
+   ```bash
+   cd LiteSecureTunnel-iOS
+   git clone https://git.zx2c4.com/wireguard-apple
+   ```
+2. In Xcode: **File → Add Package Dependencies → Add Local...** → select the cloned `wireguard-apple/` folder → add `WireGuardKit` product to the **PacketTunnel** target only
+3. Add a **Run Script** build phase to the PacketTunnel target (above Compile Sources) that calls:
+   ```bash
+   "${SRCROOT}/../scripts/build-wireguard-go.sh"
+   ```
+   The script (included in this repo) builds `libwg-go.a` via Go toolchain for the current platform. Install Go first: `brew install go`.
+4. Set the paid team in **Signing & Capabilities** for both targets.
+5. Build for a physical device — `startTunnel` will now invoke `WireGuardAdapter` and bring the tunnel up against wg-easy.
+
+The simulator path stays stubbed because NE does not run on Simulator regardless.
 
 ## Requirements
 
@@ -59,7 +80,11 @@ LiteSecureTunnel-iOS/
 ├── Models/
 │   └── TunnelConfiguration                            — Codable struct
 └── PacketTunnel/         NE target
-    └── PacketTunnelProvider                           — Stub (WireGuardKit integration pending)
+    ├── PacketTunnelProvider                           — WireGuardAdapter integration (guarded)
+    └── Logger                                         — os_log subsystems for lifecycle/config/network
+
+scripts/
+└── build-wireguard-go.sh  Run Script phase — rebuilds libwg-go.a per platform
 
 server/
 └── docker-compose.yml    wg-easy WireGuard server (LAN)
