@@ -1,0 +1,32 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+.swiftpm/
+
+# WireGuard vendored source (not part of distribution)
+wireguard-apple/
+LiteSecureTunnel-iOS/wireguard-apple/
+
+# wg-easy server runtime data (contains keys)
+server/data/
+*.conf
+
+# Project docs / plans (local notes, not distributed)
+docs/
+plans/
+
+# macOS
+.DS_Store
+
+# Claude
+.claude/
